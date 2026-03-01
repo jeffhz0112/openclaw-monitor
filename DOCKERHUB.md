@@ -8,7 +8,7 @@
 
 ```bash
 # 拉取镜像
-docker pull your-username/openclaw-monitor:latest
+docker pull 1520056819/openclaw-monitor:latest
 
 # 运行容器
 docker run -d \
@@ -20,14 +20,14 @@ docker run -d \
   -e TELEGRAM_BOT_TOKEN=YOUR_BOT_TOKEN \
   -e TELEGRAM_CHAT_ID=YOUR_CHAT_ID \
   -v /path/to/data:/app/data \
-  your-username/openclaw-monitor:latest
+  1520056819/openclaw-monitor:latest
 ```
 
 ### 方式二：Docker Compose
 
 ```bash
 # 克隆仓库
-git clone https://github.com/YOUR_USERNAME/openclaw-monitor.git
+git clone https://github.com/jeffhz0112/openclaw-monitor.git
 cd openclaw-monitor
 
 # 配置环境变量
@@ -42,7 +42,7 @@ docker-compose up -d
 
 ```bash
 # 克隆仓库
-git clone https://github.com/YOUR_USERNAME/openclaw-monitor.git
+git clone https://github.com/jeffhz0112/openclaw-monitor.git
 cd openclaw-monitor
 
 # 构建镜像

@@ -2,7 +2,7 @@
 
 [![Docker Build](https://github.com/jeffhz0112/openclaw-monitor/actions/workflows/docker-build.yml/badge.svg)](https://github.com/jeffhz0112/openclaw-monitor/actions/workflows/docker-build.yml)
 [![CI](https://github.com/jeffhz0112/openclaw-monitor/actions/workflows/ci.yml/badge.svg)](https://github.com/jeffhz0112/openclaw-monitor/actions/workflows/ci.yml)
-[![Docker Pulls](https://img.shields.io/docker/pulls/jeffhz0112/openclaw-monitor.svg)](https://hub.docker.com/r/jeffhz0112/openclaw-monitor)
+[![Docker Pulls](https://img.shields.io/docker/pulls/1520056819/openclaw-monitor.svg)](https://hub.docker.com/r/1520056819/openclaw-monitor)
 [![License](https://img.shields.io/github/license/jeffhz0112/openclaw-monitor.svg)](LICENSE)
 
 🦞 Lightweight monitoring container for OpenClaw with Telegram notifications and web interface.
@@ -25,7 +25,7 @@
 
 ```bash
 # Pull the image
-docker pull jeffhz0112/openclaw-monitor:latest
+docker pull 1520056819/openclaw-monitor:latest
 
 # Run the container
 docker run -d \
@@ -37,7 +37,7 @@ docker run -d \
   -e TELEGRAM_BOT_TOKEN=YOUR_BOT_TOKEN \
   -e TELEGRAM_CHAT_ID=YOUR_CHAT_ID \
   -v /path/to/data:/app/data \
-  jeffhz0112/openclaw-monitor:latest
+  1520056819/openclaw-monitor:latest
 ```
 
 ### Using Docker Compose
