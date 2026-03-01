@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenClaw Monitor</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        
+        .container {
+            padding-top: 30px;
+            padding-bottom: 30px;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+        }
+        
+        .status-card {
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .status-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+        
+        .status-online {
+            color: #28a745;
+        }
+        
+        .status-offline {
+            color: #dc3545;
+        }
+        
+        .status-degraded {
+            color: #ffc107;
+        }
+        
+        .status-unknown {
+            color: #6c757d;
+        }
+        
+        .response-time {
+            font-size: 48px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stats-card {
+            padding: 20px;
+        }
+        
+        .stat-item {
+            padding: 15px;
+            border-radius: 10px;
+            background: #f8f9fa;
+            margin-bottom: 10px;
+        }
+        
+        .stat-label {
+            color: #6c757d;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 18px;
+        }
+        
+        .refresh-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            padding: 10px 30px;
+            border-radius: 25px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .refresh-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            color: white;
+        }
+        
+        .last-update {
+            color: white;
+            opacity: 0.8;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-robot"></i> OpenClaw Monitor</h1>
+            <p>实时监控 OpenClaw 运行状态</p>
+            <p class="last-update">上次更新: <span id="lastUpdate">-</span></p>
+        </div>
+        
+        <!-- 状态卡片 -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card status-card">
+                    <div id="statusIcon" class="status-icon">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </div>
+                    <h2 id="statusText">检测中...</h2>
+                    <p id="statusDetail" class="text-muted">正在获取状态</p>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card status-card">
+                    <div class="response-time" id="responseTime">-</div>
+                    <p class="text-muted">响应时间 (ms)</p>
+                    <div class="mt-3">
+                        <button class="btn refresh-btn" onclick="refreshStatus()">
+                            <i class="fas fa-sync-alt"></i> 刷新状态
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 统计信息 -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card stats-card">
+                    <div class="stat-item">
+                        <div class="stat-label">24小时在线率</div>
+                        <div class="stat-value" id="uptimePercent">-</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card stats-card">
+                    <div class="stat-item">
+                        <div class="stat-label">平均响应时间</div>
+                        <div class="stat-value" id="avgResponseTime">-</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card stats-card">
+                    <div class="stat-item">
+                        <div class="stat-label">检查次数 (24h)</div>
+                        <div class="stat-value" id="totalChecks">-</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 图表 -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-chart-line"></i> 响应时间历史 (最近24小时)</h5>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="responseTimeChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 详细信息 -->
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-info-circle"></i> 监控配置</h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-sm">
+                            <tr>
+                                <td><strong>监控地址:</strong></td>
+                                <td>{{ openclaw_url }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>检查间隔:</strong></td>
+                                <td>{{ check_interval }}秒</td>
+                            </tr>
+                            <tr>
+                                <td><strong>数据保留:</strong></td>
+                                <td>7天</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-server"></i> 服务状态</h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-sm">
+                            <tr>
+                                <td><strong>Dashboard:</strong></td>
+                                <td id="dashboardStatus">-</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Gateway:</strong></td>
+                                <td id="gatewayStatus">-</td>
+                            </tr>
+                            <tr>
+                                <td><strong>错误信息:</strong></td>
+                                <td id="errorMessage">-</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let responseTimeChart;
+        
+        // 初始化图表
+        function initChart() {
+            const ctx = document.getElementById('responseTimeChart').getContext('2d');
+            responseTimeChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: '响应时间 (ms)',
+                        data: [],
+                        borderColor: 'rgb(102, 126, 234)',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: '响应时间 (ms)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: '时间'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 获取当前状态
+        async function fetchStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+                
+                updateStatusUI(data);
+                updateLastUpdate();
+            } catch (error) {
+                console.error('获取状态失败:', error);
+                showError();
+            }
+        }
+        
+        // 更新状态 UI
+        function updateStatusUI(data) {
+            const statusIcon = document.getElementById('statusIcon');
+            const statusText = document.getElementById('statusText');
+            const statusDetail = document.getElementById('statusDetail');
+            const responseTime = document.getElementById('responseTime');
+            const dashboardStatus = document.getElementById('dashboardStatus');
+            const gatewayStatus = document.getElementById('gatewayStatus');
+            const errorMessage = document.getElementById('errorMessage');
+            
+            // 清除所有状态类
+            statusIcon.className = 'status-icon';
+            
+            // 更新状态图标和文本
+            if (data.status === 'online') {
+                statusIcon.classList.add('status-online');
+                statusIcon.innerHTML = '<i class="fas fa-check-circle"></i>';
+                statusText.textContent = '正常运行';
+                statusDetail.textContent = '所有服务运行正常';
+            } else if (data.status === 'offline') {
+                statusIcon.classList.add('status-offline');
+                statusIcon.innerHTML = '<i class="fas fa-times-circle"></i>';
+                statusText.textContent = '离线';
+                statusDetail.textContent = '服务不可用';
+            } else if (data.status === 'degraded') {
+                statusIcon.classList.add('status-degraded');
+                statusIcon.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
+                statusText.textContent = '降级运行';
+                statusDetail.textContent = '部分服务不可用';
+            } else {
+                statusIcon.classList.add('status-unknown');
+                statusIcon.innerHTML = '<i class="fas fa-question-circle"></i>';
+                statusText.textContent = '未知状态';
+                statusDetail.textContent = '无法确定状态';
+            }
+            
+            // 更新响应时间
+            if (data.response_time) {
+                responseTime.textContent = data.response_time;
+            } else {
+                responseTime.textContent = '-';
+            }
+            
+            // 更新服务状态
+            dashboardStatus.textContent = data.dashboard_status || '-';
+            gatewayStatus.textContent = data.gateway_status || '-';
+            errorMessage.textContent = data.error_message || '无';
+        }
+        
+        // 更新最后更新时间
+        function updateLastUpdate() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('zh-CN');
+            document.getElementById('lastUpdate').textContent = timeString;
+        }
+        
+        // 显示错误
+        function showError() {
+            const statusIcon = document.getElementById('statusIcon');
+            const statusText = document.getElementById('statusText');
+            const statusDetail = document.getElementById('statusDetail');
+            
+            statusIcon.className = 'status-icon status-offline';
+            statusIcon.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
+            statusText.textContent = '监控异常';
+            statusDetail.textContent = '无法连接到监控系统';
+        }
+        
+        // 刷新状态
+        function refreshStatus() {
+            fetchStatus();
+            fetchHistory();
+            fetchStats();
+        }
+        
+        // 获取历史数据
+        async function fetchHistory() {
+            try {
+                const response = await fetch('/api/history?hours=24');
+                const data = await response.json();
+                
+                updateChart(data);
+            } catch (error) {
+                console.error('获取历史数据失败:', error);
+            }
+        }
+        
+        // 更新图表
+        function updateChart(data) {
+            if (!responseTimeChart) return;
+            
+            // 格式化时间标签
+            const labels = data.timestamps.map(t => {
+                const date = new Date(t);
+                return date.toLocaleTimeString('zh-CN', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+            });
+            
+            responseTimeChart.data.labels = labels;
+            responseTimeChart.data.datasets[0].data = data.response_times;
+            responseTimeChart.update();
+        }
+        
+        // 获取统计信息
+        async function fetchStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const data = await response.json();
+                
+                document.getElementById('uptimePercent').textContent = data.uptime_24h + '%';
+                document.getElementById('avgResponseTime').textContent = data.avg_response_time + ' ms';
+                document.getElementById('totalChecks').textContent = data.total_checks;
+            } catch (error) {
+                console.error('获取统计信息失败:', error);
+            }
+        }
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initChart();
+            
+            // 立即获取数据
+            fetchStatus();
+            fetchHistory();
+            fetchStats();
+            
+            // 定时刷新 (每30秒)
+            setInterval(refreshStatus, 30000);
+        });
+    </script>
+</body>
+</html>
